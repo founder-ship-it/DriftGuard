@@ -1,12 +1,12 @@
 {
   "schema": "slipmark/attestation@2",
   "by": "reviewer",
-  "verdict": "fail",
-  "at": "2026-10-23T07:23:39.737Z",
+  "verdict": "pass",
+  "at": "2026-10-23T07:25:11.285Z",
   "subjects": [
     {
       "path": "src/attest/attestation.ts",
-      "sha256": "e278a31ac5fcbfea5497a513cdd6915c46c6b2a2569535d25261baa8100eb334"
+      "sha256": "32ce5ed1e5d9a127936dba97b456f0c4f3012c5639765fe8ff160bacbee2b565"
     }
   ],
   "agent": {
@@ -15,17 +15,17 @@
   "against": [
     {
       "path": "docs/attestation.md",
-      "sha256": "50d0bc19e2ce6403b656e58683f74433a13e17eedf316981715bc1791b409957"
+      "sha256": "7747952d633e1b4e7b205351c394197f113b7b36b562c880bfcec23404e0d499"
     }
   ],
   "checks": [
     {
       "command": "npm test",
       "exitCode": 0,
-      "outputSha256": "9b2c78a52fc2e7c8b26f405201499576178a6277cc7e9bf93e8a55d28a42170a",
-      "durationMs": 5729,
+      "outputSha256": "46ab464a71fbfebf76fea4f0b3b8b16e251de6de855da75877e0bd772880cfdd",
+      "durationMs": 6378,
       "witnessed": true
     }
   ],
-  "note": "FAIL: coverage still skips a changed symlink that points at a directory inside the repo (attestation.ts:545 uses statSync, which follows links, so it is treated as a submodule); a retargeted or new dir symlink passes unreviewed. Earlier findings all fixed."
+  "note": "Re-reviewed v2 schema, against, run/check refusal, models.allow, coverage (lstat dir-link fix, symlink/dangling invalid, base checks, .slipmark and deleted excluded), v1 field stripping, empty-run and exit codes; all prior repros now refuse"
 }
