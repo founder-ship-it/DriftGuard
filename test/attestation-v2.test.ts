@@ -416,3 +416,13 @@ test("coverage: HEAD as the base is rejected; an empty models.allow says so; not
   assert.equal(a.status, 0, a.stderr);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("coverage: refuses to run from a subfolder, where git would only see that folder", () => {
+  const root = gitRepo();
+  writeFileSync(join(root, "src/other.ts"), "changed\n");
+  const sub = join(root, "specs");
+  assert.throws(() => verifyAttestations({ root: sub, policy: { schema: POLICY_SCHEMA, coverage: { mode: "diff", base: "main" } } }), /repository root/);
+  const v = cli(sub, "verify", "--coverage", "diff", "--base", "main");
+  assert.equal(v.status, 2);
+  rmSync(root, { recursive: true, force: true });
+});

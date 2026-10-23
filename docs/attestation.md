@@ -31,7 +31,9 @@ gives the same answer every time.
 }
 ```
 
-- `path` is relative to the repository root, with forward slashes.
+- `path` is relative to the folder Slipmark runs from, with forward slashes.
+  Run `attest` and `verify` from the repository root (the Action does this by
+  default) so paths match.
 - `verdict` of `pass` or `cleared` can clear the gate. Anything else blocks.
 - `at` and `note` are informational. The gate never trusts them.
 
@@ -123,6 +125,7 @@ the spec, the old verdict will (correctly) stop clearing.
 
 ```bash
 slipmark verify [--dir .slipmark/attestations] [--require <file>...] [--json]
+                [--coverage diff --base <ref> [--ignore <glob>...]] [--no-policy]
 ```
 
 Exit code 0 means every attested file matches and every verdict passes. Exit
@@ -148,8 +151,11 @@ When an attestation fails on `against_changed`, `check_failed` or
 `model_not_allowed`, none of its subjects count. So `--require` and coverage
 report them as not covered too.
 
-Exit code 2 means `verify` couldn't run: a malformed policy, a coverage base
-that isn't in the checkout or isn't a plain ref, or a flag given with no value.
+Exit code 2 means the command couldn't run. For `verify`: a malformed policy,
+a coverage base that isn't in the checkout or isn't a plain ref, coverage run
+from somewhere other than the repository root, or a flag given with no value.
+For `attest`: a passing verdict refused because a check failed, a missing or
+unreadable subject, or bad input.
 
 `--require` is how you stop the quiet failure where an agent simply never
 produces a verdict. List the files that must be covered and the gate refuses
@@ -164,13 +170,18 @@ slipmark verify --coverage diff --base origin/main --ignore "docs/**"
 `verify` works out which files changed since the merge base with `--base`
 (committed, staged, unstaged and untracked), and refuses any that no current,
 passing verdict covers. It computes the list itself and never reads it from an
-attestation. Deleted files, submodules and `.slipmark/**` are left out. A
+attestation. Coverage only runs from the repository root: from a subfolder it
+exits 2, because git would only report changes in that folder. Deleted files, submodules and `.slipmark/**` are left out. A
 changed file that can't be hashed, such as a link pointing outside the
 repository or to nothing, is refused as `invalid`, never skipped. A link to
 a folder is refused too, since a link is never treated as a submodule. The
 base must be the branch you merge into, such as `origin/main`. Anything
 starting with `-` is rejected, and so is `HEAD`, which would compare the
-branch with itself and cover nothing.
+branch with itself and cover nothing. Other names for the same commit (the
+current branch's own name, `HEAD~0`) are accepted, because on a push to `main`
+the base legitimately equals HEAD and nothing counts as changed. That is why
+coverage belongs on pull requests, where the base is the branch you merge
+into.
 
 This closes the gap where an agent reviews 3 of 7 changed files and the other
 4 go through unreviewed.

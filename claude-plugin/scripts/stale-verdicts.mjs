@@ -135,6 +135,15 @@ function git(root, args) {
 }
 function changedFiles(root, base) {
   checkBase(base);
+  let top;
+  try {
+    top = git(root, ["rev-parse", "--show-toplevel"]).trim();
+  } catch {
+    throw new Error("coverage: this folder is not inside a git repository");
+  }
+  if (realpathSync(top) !== realpathSync(root)) {
+    throw new Error(`coverage: run from the repository root (${top}), not a subfolder. From a subfolder it would miss changes elsewhere in the repo.`);
+  }
   let mergeBase;
   try {
     const commit = git(root, ["rev-parse", "--verify", "--quiet", `${base}^{commit}`]).trim();
