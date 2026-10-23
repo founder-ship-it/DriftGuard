@@ -2,11 +2,11 @@
   "schema": "slipmark/attestation@2",
   "by": "reviewer",
   "verdict": "pass",
-  "at": "2026-10-23T07:25:11.285Z",
+  "at": "2026-10-23T07:31:29.909Z",
   "subjects": [
     {
       "path": "src/attest/attestation.ts",
-      "sha256": "32ce5ed1e5d9a127936dba97b456f0c4f3012c5639765fe8ff160bacbee2b565"
+      "sha256": "619e5c15f90fed1061a9aa9ca0745e0ae31c4fe44478246d2d58cbe9de5e7f92"
     }
   ],
   "agent": {
@@ -15,17 +15,17 @@
   "against": [
     {
       "path": "docs/attestation.md",
-      "sha256": "7747952d633e1b4e7b205351c394197f113b7b36b562c880bfcec23404e0d499"
+      "sha256": "054d2637885f42d27661ee2943fe0e2c873cb8cd27373831f8383ae106853cbc"
     }
   ],
   "checks": [
     {
       "command": "npm test",
       "exitCode": 0,
-      "outputSha256": "46ab464a71fbfebf76fea4f0b3b8b16e251de6de855da75877e0bd772880cfdd",
-      "durationMs": 6378,
+      "outputSha256": "04e1c53dd1a241778445791f774839cff008c77387ebb064ad73a1d810d3798e",
+      "durationMs": 6975,
       "witnessed": true
     }
   ],
-  "note": "Re-reviewed v2 schema, against, run/check refusal, models.allow, coverage (lstat dir-link fix, symlink/dangling invalid, base checks, .slipmark and deleted excluded), v1 field stripping, empty-run and exit codes; all prior repros now refuse"
+  "note": "Re-reviewed v2 schema, against, run/check refusal, models.allow, coverage (dir links, base checks, root-only), policy loading incl. subfolder refusal and --no-policy, v1 field stripping, exit codes; all prior repros refuse"
 }
