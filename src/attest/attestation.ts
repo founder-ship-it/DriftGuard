@@ -338,7 +338,19 @@ export function matchesAny(path: string, globs: string[]): boolean {
 /** Read and check `.slipmark/policy.json`. Returns null when there is none. Throws when it is malformed. */
 export function loadPolicy(root: string): Policy | null {
   const file = join(resolve(root), POLICY_FILE);
-  if (!existsSync(file)) return null;
+  if (!existsSync(file)) {
+    // Run from a subfolder, the repository's own policy would be missed and its rules silently dropped. Refuse instead.
+    let top: string | null = null;
+    try {
+      top = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: resolve(root), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch {
+      top = null; // not a git repository: nothing above to miss
+    }
+    if (top && realpathSync(top) !== realpathSync(resolve(root)) && existsSync(join(top, POLICY_FILE))) {
+      throw new Error(`${POLICY_FILE} is at the repository root (${top}). Run from there, or pass --no-policy to skip it on purpose.`);
+    }
+    return null;
+  }
   let p: unknown;
   try {
     p = JSON.parse(readFileSync(file, "utf8"));

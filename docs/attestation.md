@@ -216,7 +216,9 @@ Put the same settings in `.slipmark/policy.json` and every `verify` run
   re-review when you change models. The model is a claimed field, so this
   catches mistakes, not an attester that lies about its model.
 
-`--no-policy` ignores the file for one run. Globs support `**`, `*` and `?`
+`--no-policy` ignores the file for one run. The file is read from the folder
+`verify` runs in. If it runs from a subfolder while the repository root has a
+policy file, it exits 2 rather than silently skipping the root's rules. Globs support `**`, `*` and `?`
 and match the whole path from the repository root.
 
 ## Why the gate checks content, not branches

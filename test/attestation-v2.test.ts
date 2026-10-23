@@ -426,3 +426,17 @@ test("coverage: refuses to run from a subfolder, where git would only see that f
   assert.equal(v.status, 2);
   rmSync(root, { recursive: true, force: true });
 });
+
+test("policy: running from a subfolder never silently drops the root's policy", () => {
+  const root = gitRepo();
+  mkdirSync(join(root, "pkg"));
+  writeFileSync(join(root, "pkg/p.ts"), "p\n");
+  mkdirSync(join(root, ".slipmark"), { recursive: true });
+  writeFileSync(join(root, ".slipmark/policy.json"), JSON.stringify({ schema: POLICY_SCHEMA, models: { allow: ["x"] } }));
+  const sub = join(root, "pkg");
+  save(sub, createAttestation({ root: sub, by: "r", verdict: "pass", subjects: ["p.ts"], now: NOW }));
+  assert.throws(() => verifyAttestations({ root: sub }), /at the repository root/);
+  assert.equal(cli(sub, "verify").status, 2);
+  assert.equal(cli(sub, "verify", "--no-policy").status, 0);
+  rmSync(root, { recursive: true, force: true });
+});

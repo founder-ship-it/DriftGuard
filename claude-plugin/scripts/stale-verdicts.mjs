@@ -95,7 +95,18 @@ function matchesAny(path, globs) {
 }
 function loadPolicy(root) {
   const file = join(resolve(root), POLICY_FILE);
-  if (!existsSync(file)) return null;
+  if (!existsSync(file)) {
+    let top = null;
+    try {
+      top = execFileSync("git", ["rev-parse", "--show-toplevel"], { cwd: resolve(root), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch {
+      top = null;
+    }
+    if (top && realpathSync(top) !== realpathSync(resolve(root)) && existsSync(join(top, POLICY_FILE))) {
+      throw new Error(`${POLICY_FILE} is at the repository root (${top}). Run from there, or pass --no-policy to skip it on purpose.`);
+    }
+    return null;
+  }
   let p;
   try {
     p = JSON.parse(readFileSync(file, "utf8"));
