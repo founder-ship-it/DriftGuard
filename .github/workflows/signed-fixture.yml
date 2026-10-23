@@ -1,10 +1,13 @@
 # Makes test/fixtures/signed-attestation.json: a real verdict signed by this
 # workflow through Sigstore, so the tests can check a genuine Fulcio certificate
-# and DSSE envelope without the network. Run by hand when the fixture needs refreshing.
+# and DSSE envelope without the network. Runs by hand, or when this file changes.
 name: Signed fixture
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/signed-fixture.yml
 
 jobs:
   make:
