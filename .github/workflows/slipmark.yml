@@ -104,6 +104,7 @@ jobs:
           cd "$work"
           node "$GITHUB_WORKSPACE/dist/src/cli.js" attest --by security-reviewer --verdict pass --subject src/pay.ts --sign
           echo "Signed as: $ME"
+          { echo "### Signed verdict"; echo; echo "Signed as \`$ME\`"; echo; echo '```json'; cat .slipmark/attestations/*.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
           node "$GITHUB_WORKSPACE/dist/src/cli.js" verify --require-signed --trusted-signer "$ME"
           echo "::notice title=Signed verdicts::Trusted signer accepted"
