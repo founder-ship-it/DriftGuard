@@ -1,17 +1,31 @@
 {
-  "schema": "slipmark/attestation@1",
+  "schema": "slipmark/attestation@2",
   "by": "reviewer",
-  "verdict": "pass",
-  "at": "2026-10-22T18:01:06.443Z",
+  "verdict": "fail",
+  "at": "2026-10-23T07:23:39.737Z",
   "subjects": [
     {
       "path": "src/attest/attestation.ts",
-      "sha256": "53785e122dd77f2a5ce25c54d6f1350b9cc8a590b0cb298bf36fa5629266bbd7"
-    },
-    {
-      "path": "docs/attestation.md",
-      "sha256": "8839c1ec7f1cdeec68777d8b4b08aec8f2e80ca7027ca6fe3ad3ed0265ab7ba0"
+      "sha256": "e278a31ac5fcbfea5497a513cdd6915c46c6b2a2569535d25261baa8100eb334"
     }
   ],
-  "note": "attestation.ts implements the documented model, statuses, empty-run and --require handling, and path/symlink escape rejection; security notes now state symlink escapes are rejected"
+  "agent": {
+    "model": "claude-opus-5-5"
+  },
+  "against": [
+    {
+      "path": "docs/attestation.md",
+      "sha256": "50d0bc19e2ce6403b656e58683f74433a13e17eedf316981715bc1791b409957"
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "outputSha256": "9b2c78a52fc2e7c8b26f405201499576178a6277cc7e9bf93e8a55d28a42170a",
+      "durationMs": 5729,
+      "witnessed": true
+    }
+  ],
+  "note": "FAIL: coverage still skips a changed symlink that points at a directory inside the repo (attestation.ts:545 uses statSync, which follows links, so it is treated as a submodule); a retargeted or new dir symlink passes unreviewed. Earlier findings all fixed."
 }

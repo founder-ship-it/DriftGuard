@@ -38,6 +38,44 @@ gives the same answer every time.
 Files live in `.slipmark/attestations/` by default, one JSON file each.
 Change it with `--dir`.
 
+### Version 2 fields
+
+When you use any of the options below, `attest` writes
+`"schema": "slipmark/attestation@2"`. Without them it keeps writing `@1`, so
+older verifiers can still read your attestations. `verify` reads both.
+
+```json
+{
+  "schema": "slipmark/attestation@2",
+  "by": "security-audit",
+  "verdict": "cleared",
+  "at": "2026-10-23T09:00:00.000Z",
+  "agent": { "model": "claude-opus-5-5" },
+  "subjects": [{ "path": "src/auth/session.ts", "sha256": "<64 lowercase hex>" }],
+  "against": [{ "path": "specs/auth.md", "sha256": "<64 lowercase hex>" }],
+  "checks": [
+    { "command": "npm test", "exitCode": 0, "outputSha256": "<64 lowercase hex>", "durationMs": 4123, "witnessed": true },
+    { "command": "npm run lint", "exitCode": 0, "witnessed": false }
+  ]
+}
+```
+
+- `against`: files the verdict was checked **against**, such as a spec or a
+  review checklist. Gated like subjects: if one changes, the verdict stops
+  counting.
+- `checks` with `witnessed: true`: Slipmark ran the command itself
+  (`--run`) and recorded the exit code and a hash of the output.
+- `checks` with `witnessed: false`: the agent says it ran it (`--check`).
+  Recorded and reported as a claim, never trusted to clear the gate. A claim
+  that a check *failed* still blocks, because it can only make the gate
+  stricter.
+- `agent.model`, `agent.harness`, `kind`: claimed. Used only to match a
+  policy.
+
+Every field is either **witnessed** (Slipmark computed it) or **claimed** (the
+attester said it). The gate only trusts witnessed fields. On a laptop,
+"witnessed" means that laptop computed it.
+
 ## Writing attestations
 
 From a shell step:
@@ -61,6 +99,22 @@ const att = createAttestation({
 writeAttestation(defaultAttestationPath(".slipmark/attestations", att), att);
 ```
 
+With version 2 fields:
+
+```bash
+slipmark attest --by security-audit --verdict cleared \
+  --subject src/auth/session.ts \
+  --against specs/auth.md \
+  --run "npm test -- src/auth" \
+  --check "npm run lint=0" \
+  --model claude-opus-5-5
+```
+
+`--run` executes each command from the repository root before anything is
+written. If any `--run` or `--check` exited non-zero, `attest` refuses to
+record a passing verdict (exit 2) and writes nothing. Record `--verdict fail`
+instead. `--model` falls back to the `SLIPMARK_MODEL` environment variable.
+
 Attest the files the agent **read**, at the moment it gave the verdict. If the
 agent read a spec and wrote a brief, attest the spec. If a later step rewrites
 the spec, the old verdict will (correctly) stop clearing.
@@ -82,10 +136,77 @@ code 1 means the gate refused.
 | `verdict_not_passing` | The agent's own verdict was not a pass |
 | `unattested` | A `--require`d file has no passing, current verdict, or the directory is empty |
 | `invalid` | Malformed JSON, wrong schema, or a path outside the repository |
+| `against_changed` | A file the verdict was checked against changed or was deleted |
+| `check_failed` | A check recorded a non-zero exit code (witnessed or claimed) |
+| `model_not_allowed` | The policy lists allowed models and this verdict's model isn't one, or it has none |
+| `uncovered` | Coverage is on and a changed file has no current, passing verdict |
+
+A version 1 attestation is judged on version 1 fields only. Anything else in
+it is ignored.
+
+When an attestation fails on `against_changed`, `check_failed` or
+`model_not_allowed`, none of its subjects count. So `--require` and coverage
+report them as not covered too.
+
+Exit code 2 means `verify` couldn't run: a malformed policy, a coverage base
+that isn't in the checkout or isn't a plain ref, or a flag given with no value.
 
 `--require` is how you stop the quiet failure where an agent simply never
 produces a verdict. List the files that must be covered and the gate refuses
 when one isn't.
+
+## Coverage: every changed file needs a verdict
+
+```bash
+slipmark verify --coverage diff --base origin/main --ignore "docs/**"
+```
+
+`verify` works out which files changed since the merge base with `--base`
+(committed, staged, unstaged and untracked), and refuses any that no current,
+passing verdict covers. It computes the list itself and never reads it from an
+attestation. Deleted files, submodules and `.slipmark/**` are left out. A
+changed file that can't be hashed, such as a link pointing outside the
+repository or to nothing, is refused as `invalid`, never skipped. A link to
+a folder is refused too, since a link is never treated as a submodule. The
+base must be the branch you merge into, such as `origin/main`. Anything
+starting with `-` is rejected, and so is `HEAD`, which would compare the
+branch with itself and cover nothing.
+
+This closes the gap where an agent reviews 3 of 7 changed files and the other
+4 go through unreviewed.
+
+In GitHub Actions the base must be in the checkout, so use
+`actions/checkout` with `fetch-depth: 0`, then:
+
+```yaml
+- uses: founder-ship-it/Slipmark@main
+  with:
+    coverage-base: origin/main
+    coverage-ignore: |
+      docs/**
+```
+
+## Policy file
+
+Put the same settings in `.slipmark/policy.json` and every `verify` run
+(including the Action) picks them up:
+
+```json
+{
+  "schema": "slipmark/policy@1",
+  "coverage": { "mode": "diff", "base": "origin/main", "ignore": ["docs/**", "**/*.lock"] },
+  "models": { "allow": ["claude-opus-5-5", "claude-sonnet-5-5"] }
+}
+```
+
+- `coverage`: as above. `--coverage` on the command line overrides it.
+- `models.allow`: only verdicts from these models count. Remove an old model
+  from the list and its verdicts stop counting: that is how you force a
+  re-review when you change models. The model is a claimed field, so this
+  catches mistakes, not an attester that lies about its model.
+
+`--no-policy` ignores the file for one run. Globs support `**`, `*` and `?`
+and match the whole path from the repository root.
 
 ## Why the gate checks content, not branches
 
