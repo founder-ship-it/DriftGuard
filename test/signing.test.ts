@@ -152,3 +152,17 @@ test("a v1 attestation can carry a signature too", async () => {
   const report = await verifyWithSignatures({ root, policy: policy({ require: true, trusted: [WORKFLOW] }), verify: ok });
   assert.equal(report.ok, true);
 });
+
+// A genuine verdict signed through Sigstore by .github/workflows/signed-fixture.yml (see that file).
+const REAL = JSON.parse(readFileSync(new URL("../../test/fixtures/signed-attestation.json", import.meta.url), "utf8"));
+const REAL_ID = readFileSync(new URL("../../test/fixtures/signed-attestation.identity", import.meta.url), "utf8").trim();
+
+test("real signature: the Fulcio certificate names the workflow that signed it", () => {
+  assert.equal(bundleIdentity(REAL.signature.bundle), REAL_ID);
+});
+
+test("real signature: the envelope covers exactly this attestation", async () => {
+  const r = await checkSignature(REAL, { trusted: [REAL_ID] }, ok);
+  assert.deepEqual(r, { state: "valid", identity: REAL_ID, issuer: "https://token.actions.githubusercontent.com", trusted: true });
+  assert.equal((await checkSignature({ ...REAL, verdict: "cleared" }, undefined, ok)).state, "invalid");
+});
